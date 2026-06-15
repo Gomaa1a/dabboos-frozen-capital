@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>داشبورد المنتجات الراكدة · Dabboos Frozen Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/styles.css?v=1" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-icon="snowflake"></i></div>
+    <div>
+      <h1>المنتجات الراكدة · Frozen Capital</h1>
+      <p class="sub">منتجات لم تُسحب — راكد مقابل نائم (موسمي)</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="dataStatus" class="pill pill-muted">— تحميل…</span>
+    <button id="langToggle" class="ghost-btn" type="button">EN</button>
+    <button id="themeToggle" class="ghost-btn" type="button" aria-label="theme"><i data-icon="moon"></i></button>
+  </div>
+</header>
+
+<nav class="tabbar" id="tabbar">
+  <button class="navtab" data-t="ov"><i data-icon="dashboard"></i> <span data-en="Overview">نظرة عامة</span></button>
+  <button class="navtab" data-t="cat"><i data-icon="category"></i> <span data-en="Categories & brands">فئات وبراندات</span></button>
+  <button class="navtab" data-t="prod"><i data-icon="box"></i> <span data-en="Products">المنتجات</span></button>
+  <button class="navtab" data-t="seas"><i data-icon="calendar"></i> <span data-en="Seasonality">الموسمية</span></button>
+</nav>
+
+<main class="wrap">
+
+  <section data-page="ov">
+    <div class="threshbar card">
+      <span class="thresh-label" data-en="idle threshold">حد الركود</span>
+      <input type="range" id="thresh" min="0" max="2" step="1" value="1" />
+      <span id="threshOut" class="thresh-out">90+ يوم</span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label" data-en="truly dead capital">رأس مال مجمّد (راكد فعلاً)</div><div id="kDead" class="kpi-val danger">—</div></div>
+      <div class="kpi"><div class="kpi-label" data-en="dead SKUs">عدد المنتجات الراكدة</div><div id="kSku" class="kpi-val">—</div></div>
+      <div class="kpi"><div class="kpi-label" data-en="dormant / seasonal — hold">نائم (موسمي) — احتفظ به</div><div id="kDorm" class="kpi-val warning">—</div></div>
+      <div class="kpi"><div class="kpi-label" data-en="of total stock value">% من قيمة المخزون</div><div id="kPct" class="kpi-val">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-en="aging buckets">شرائح التقادم</div>
+      <div id="buckets"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title" data-en="frozen capital by category">رأس المال المجمّد حسب الفئة</div>
+        <div id="byCat"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-en="by brand">حسب البراند</div>
+        <div id="byBrand"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-page="cat" hidden>
+    <div class="card">
+      <div class="card-title" data-en="dead stock value per category">قيمة المخزون الراكد لكل فئة</div>
+      <div id="catTable" class="table-wrap"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" data-en="per brand">لكل براند</div>
+      <div id="brandTable" class="table-wrap"></div>
+    </div>
+  </section>
+
+  <section data-page="prod" hidden>
+    <div class="card">
+      <div class="filters">
+        <input id="search" type="text" placeholder="ابحث عن منتج / براند / فئة…" />
+        <select id="fStatus">
+          <option value="all">كل الحالات</option>
+          <option value="dead">راكد فعلاً</option>
+          <option value="dormant">نائم</option>
+          <option value="oos">انتهى موسمه</option>
+        </select>
+        <select id="fSort">
+          <option value="value">ترتيب: القيمة</option>
+          <option value="idle">ترتيب: أيام الركود</option>
+        </select>
+      </div>
+      <div id="prodTable" class="table-wrap"></div>
+      <div class="pager">
+        <button id="prevPage" class="ghost-btn" type="button">السابق</button>
+        <span id="pageInfo"></span>
+        <button id="nextPage" class="ghost-btn" type="button">التالي</button>
+      </div>
+    </div>
+  </section>
+
+  <section data-page="seas" hidden>
+    <div class="card">
+      <div class="card-title" data-en="monthly sales intensity per category">شدة المبيعات شهريًا لكل فئة</div>
+      <p class="muted-note">آخر سنتين — الأغمق يعني مبيعات أعلى</p>
+      <div id="heatmap" class="heatmap"></div>
+    </div>
+    <div class="three-col">
+      <div class="card season-now"><div class="season-h success"><i data-icon="flame"></i> <span data-en="peaking now">ذروة الآن</span></div><div id="seasNow" class="season-list"></div></div>
+      <div class="card season-soon"><div class="season-h warning"><i data-icon="clock"></i> <span data-en="waking up soon">يستيقظ قريبًا</span></div><div id="seasSoon" class="season-list"></div></div>
+      <div class="card season-oos"><div class="season-h danger"><i data-icon="discount"></i> <span data-en="out of season — clear it">انتهى موسمه — صفّيه</span></div><div id="seasOos" class="season-list"></div></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <span>Dabboos · Frozen Capital dashboard</span>
+  <span id="footMode"></span>
+</footer>
+
+<script src="assets/config.js?v=1"></script>
+<script src="assets/mock.js?v=1"></script>
+<script src="assets/data.js?v=1"></script>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>
