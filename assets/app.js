@@ -71,7 +71,7 @@
   const CUT_LABELS = [["60+ يوم", "60+ days"], ["90+ يوم", "90+ days"], ["180+ يوم", "180+ days"]];
   let OV = null;
   function renderOverview() {
-    if (!OV) return;
+    if (!OV || !OV.buckets) return;
     const cut = +$("#thresh").value;
     const inc = OV.buckets.filter(b => b.min >= cut);
     const dead = inc.reduce((s, b) => s + b.dead, 0);
@@ -103,7 +103,7 @@
   // --- CATEGORIES / BRANDS ---
   let CAT = null;
   function renderCategories() {
-    if (!CAT) return;
+    if (!CAT || !CAT.category_table) return;
     $("#catTable").innerHTML = `<table class="mk"><thead><tr>
       <th>${t("الفئة", "Category")}</th><th>SKUs</th><th>${t("قيمة المخزون", "Stock value")}</th>
       <th>${t("راكد", "Dead")}</th><th>${t("% راكد", "% dead")}</th><th>${t("الموسم", "Season")}</th></tr></thead><tbody>` +
@@ -144,7 +144,7 @@
   // --- SEASONALITY ---
   let SEA = null;
   function renderSeasonality() {
-    if (!SEA) return;
+    if (!SEA || !SEA.rows) return;
     const months = lang === "ar" ? SEA.months_ar : SEA.months_en;
     const ramp = ["var(--bg3)", "#1d7a5e", "#16a37a", "#34d399"];
     let html = `<div class="hm-grid" style="grid-template-columns:90px repeat(12,1fr)"><span></span>` +
