@@ -1,0 +1,226 @@
+{
+  "name": "Dabboos Dead Stock Sync — Frozen Capital",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n-manual",
+      "name": "When clicking ‘Execute workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-1040, 60]
+    },
+    {
+      "parameters": {
+        "rule": { "interval": [ { "field": "hours", "hoursInterval": 6 } ] }
+      },
+      "id": "n-sched",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [-1040, 240]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "c1", "name": "odooUrl", "value": "https://accounting.aldabboos.com", "type": "string" },
+            { "id": "c2", "name": "odooDb", "value": "PASTE_ODOO_DB_NAME", "type": "string" },
+            { "id": "c3", "name": "odooLogin", "value": "PASTE_ODOO_LOGIN_EMAIL", "type": "string" },
+            { "id": "c4", "name": "odooApiKey", "value": "PASTE_ODOO_API_KEY", "type": "string" },
+            { "id": "c5", "name": "supabaseUrl", "value": "https://uippvtncxsnigadtsgbc.supabase.co", "type": "string" },
+            { "id": "c6", "name": "serviceKey", "value": "PASTE_SUPABASE_SERVICE_ROLE_KEY", "type": "string" },
+            { "id": "c7", "name": "monthsBack", "value": "12", "type": "string" },
+            { "id": "c8", "name": "deadDays", "value": "90", "type": "string" },
+            { "id": "c9", "name": "stuckDays", "value": "60", "type": "string" },
+            { "id": "c10", "name": "brandModel", "value": "product.template", "type": "string" },
+            { "id": "c11", "name": "brandField", "value": "product_brand_id", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-860, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'call', params: { service: 'common', method: 'authenticate', args: [ $('Config').first().json.odooDb, $('Config').first().json.odooLogin, $('Config').first().json.odooApiKey, {} ] } }) }}",
+        "options": {}
+      },
+      "id": "n-auth",
+      "name": "Odoo Auth",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-680, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'stock.quant', 'read_group', [ [['location_id.usage','=','internal'],['quantity','>',0]], ['product_id','quantity:sum','value:sum'], ['product_id'] ], { lazy:false } ] } }) }}",
+        "options": {}
+      },
+      "id": "n-stock",
+      "name": "Odoo Stock (read_group)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-500, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'product.product', 'read', [ $('Odoo Stock').first().json.result.map(g => Array.isArray(g.product_id) ? g.product_id[0] : g.product_id), ['display_name','default_code','categ_id','product_tmpl_id','standard_price'] ] ] } }) }}",
+        "options": {}
+      },
+      "id": "n-products",
+      "name": "Odoo Products (read)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-320, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, $('Config').first().json.brandModel, 'read', [ [...new Set($('Odoo Products').first().json.result.map(p => Array.isArray(p.product_tmpl_id) ? p.product_tmpl_id[0] : p.product_tmpl_id))], [ $('Config').first().json.brandField ] ] ] } }) }}",
+        "options": {}
+      },
+      "id": "n-brands",
+      "name": "Odoo Brands (read)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-140, 150],
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'sale.order.line', 'read_group', [ [['order_id.state','in',['sale','done']],['create_date','>=', new Date(Date.now() - (Number($('Config').first().json.monthsBack)||12)*30*864e5).toISOString().slice(0,10)]], ['product_id','product_uom_qty:sum','create_date:max'], ['product_id','create_date:month'] ], { lazy:false } ] } }) }}",
+        "options": {}
+      },
+      "id": "n-sales-monthly",
+      "name": "Odoo Sales Monthly (read_group)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [40, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.odooUrl }}/jsonrpc",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'sale.order.line', 'read_group', [ [['order_id.state','in',['sale','done']],['create_date','>=', new Date(Date.now() - 90*864e5).toISOString().slice(0,10)]], ['product_id','product_uom_qty:sum'], ['product_id'] ], { lazy:false } ] } }) }}",
+        "options": {}
+      },
+      "id": "n-sales-90",
+      "name": "Odoo Sales 90d (read_group)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [220, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Build dead-stock snapshots + per-product rows from the Odoo read_group results =====\nconst CFG = $('Config').first().json;\nconst DEAD = Number(CFG.deadDays) || 90;\nconst STUCK = Number(CFG.stuckDays) || 60;\nconst num = n => (typeof n === 'number' ? n : Number(n)) || 0;\nconst MILL = 1e6; // raw IQD -> millions (matches dashboard formatter + seed)\nconst monAr = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];\nconst monEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst now = new Date();\nconst curMon = now.getMonth();\nconst pid = v => Array.isArray(v) ? v[0] : v;\nconst pnm = v => Array.isArray(v) ? v[1] : (v || '');\nconst R = name => { try { const r = $(name).first().json.result; return Array.isArray(r) ? r : []; } catch (e) { return []; } };\n\n// --- stock per product variant ---\nconst stock = new Map();\nfor (const g of R('Odoo Stock (read_group)')) {\n  const id = pid(g.product_id); if (id == null) continue;\n  stock.set(id, { onhand: num(g.quantity), value: num(g.value) });\n}\n\n// --- product details ---\nconst prod = new Map();\nfor (const p of R('Odoo Products (read)')) {\n  prod.set(p.id, { name: p.display_name || pnm(p.categ_id) || ('#' + p.id), code: p.default_code || '',\n    cat: pnm(p.categ_id) || '—', tmpl: pid(p.product_tmpl_id), cost: num(p.standard_price) });\n}\n\n// --- brand per template (optional; node may have failed) ---\nconst bf = CFG.brandField;\nconst tmplBrand = new Map();\nfor (const b of R('Odoo Brands (read)')) {\n  const v = b[bf]; tmplBrand.set(b.id, (Array.isArray(v) ? v[1] : (v || null)) || '—');\n}\n\n// --- 90-day sales per product ---\nconst s90 = new Map();\nfor (const g of R('Odoo Sales 90d (read_group)')) s90.set(pid(g.product_id), num(g.product_uom_qty));\n\n// --- monthly sales per product (for last-sale, total, seasonality) ---\nconst monthly = new Map(); // id -> {months:[12], last:Date|null, total}\nfor (const g of R('Odoo Sales Monthly (read_group)')) {\n  const id = pid(g.product_id); if (id == null) continue;\n  let dt = null;\n  const rg = g.__range && (g.__range['create_date:month'] || g.__range['create_date']);\n  if (rg && rg.from) dt = new Date(rg.from);\n  else if (typeof g['create_date:month'] === 'string') dt = new Date(g['create_date:month']);\n  const mi = dt && !isNaN(dt) ? dt.getMonth() : null;\n  const qty = num(g.product_uom_qty);\n  const last = g.create_date ? new Date(g.create_date) : null;\n  if (!monthly.has(id)) monthly.set(id, { months: new Array(12).fill(0), last: null, total: 0 });\n  const m = monthly.get(id);\n  if (mi != null) m.months[mi] += qty;\n  m.total += qty;\n  if (last && (!m.last || last > m.last)) m.last = last;\n}\n\n// --- classify each in-stock product ---\nfunction peakMonths(arr) {\n  const sum = arr.reduce((a, b) => a + b, 0); if (sum <= 0) return [];\n  const avg = sum / 12; return arr.map((v, i) => v >= avg * 1.3 && v > 0 ? i : -1).filter(i => i >= 0);\n}\nconst products = [];          // stuck rows for dead_stock_products\nlet totalStockValue = 0;      // all in-stock value (millions)\nconst catAgg = new Map();     // cat -> {sku,val,dead}\nconst brandAgg = new Map();\nconst catMonths = new Map();  // cat -> [12] sales\nconst buckets = { '60': { dead: 0, dorm: 0, sku: 0 }, '90': { dead: 0, dorm: 0, sku: 0 }, '180': { dead: 0, dorm: 0, sku: 0 } };\n\nfor (const [id, st] of stock) {\n  const p = prod.get(id) || { name: '#' + id, cat: '—', tmpl: null, cost: 0 };\n  const brand = (p.tmpl != null && tmplBrand.get(p.tmpl)) || '—';\n  const valM = (st.value > 0 ? st.value : st.onhand * p.cost) / MILL;\n  totalStockValue += valM;\n  const mo = monthly.get(id) || { months: new Array(12).fill(0), last: null, total: 0 };\n  const idle = mo.last ? Math.floor((now - mo.last) / 864e5) : 9999;\n  const sold90 = s90.get(id) || 0;\n\n  // category seasonality accumulation (all in-stock products)\n  if (!catMonths.has(p.cat)) catMonths.set(p.cat, new Array(12).fill(0));\n  const cm = catMonths.get(p.cat); for (let i = 0; i < 12; i++) cm[i] += mo.months[i];\n  if (!catAgg.has(p.cat)) catAgg.set(p.cat, { sku: 0, val: 0, dead: 0 });\n  catAgg.get(p.cat).sku++; catAgg.get(p.cat).val += valM;\n  if (!brandAgg.has(brand)) brandAgg.set(brand, { sku: 0, val: 0, dead: 0 });\n  brandAgg.get(brand).sku++; brandAgg.get(brand).val += valM;\n\n  if (idle < STUCK) continue; // still moving -> not stuck, skip from dead list\n\n  const peaks = peakMonths(mo.months);\n  const soon = peaks.includes(curMon) || peaks.includes((curMon + 1) % 12) || peaks.includes((curMon + 2) % 12);\n  const passed = peaks.includes((curMon + 11) % 12) || peaks.includes((curMon + 10) % 12);\n  let status = 'dead';\n  if (soon) status = 'dormant';\n  else if (passed) status = 'oos';\n  const isDorm = status === 'dormant';\n\n  const bk = idle >= 180 ? '180' : (idle >= 90 ? '90' : '60');\n  buckets[bk].sku++; buckets[bk][isDorm ? 'dorm' : 'dead'] += valM;\n  catAgg.get(p.cat).dead += isDorm ? 0 : valM;\n  brandAgg.get(brand).dead += isDorm ? 0 : valM;\n\n  const pkLabel = peaks.length ? { ar: peaks.map(i => monAr[i]).join('، '), en: peaks.map(i => monEn[i]).join(', ') } : { ar: 'لا نمط واضح', en: 'No pattern' };\n  products.push({ product_id: id, name: p.name, category: p.cat, brand,\n    on_hand: Math.round(st.onhand), value: Math.round(valM * 100) / 100,\n    idle_days: idle === 9999 ? null : idle, sold_90: Math.round(sold90 * 100) / 100,\n    peak_ar: pkLabel.ar, peak_en: pkLabel.en, status, updated_at: new Date().toISOString() });\n}\n\n// --- shape snapshot payloads (values in millions, matching the dashboard) ---\nconst r1 = n => Math.round(n * 10) / 10;\nconst seasonLabel = arr => { const pk = peakMonths(arr); if (!pk.length) return { ar: 'ثابت', en: 'Flat' }; return { ar: pk.map(i => monAr[i]).join('، '), en: pk.map(i => monEn[i]).join(', ') }; };\nconst intensity = arr => { const mx = Math.max(...arr, 0); return arr.map(v => mx <= 0 ? 0 : Math.min(3, Math.ceil(v / mx * 3))); };\n\nconst by_category = [...catAgg.entries()].map(([k, v]) => ({ name_ar: k, name_en: k, v: r1(v.dead) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 10);\nconst by_brand = [...brandAgg.entries()].map(([k, v]) => ({ name_ar: k, name_en: k, v: r1(v.dead) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 10);\nconst category_table = [...catAgg.entries()].map(([k, v]) => { const s = seasonLabel(catMonths.get(k) || []); return { name_ar: k, name_en: k, sku: v.sku, val: r1(v.val), dead: r1(v.dead), season_ar: s.ar, season_en: s.en }; }).sort((a, b) => b.dead - a.dead);\nconst brand_table = [...brandAgg.entries()].map(([k, v]) => ({ name_ar: k, name_en: k, sku: v.sku, val: r1(v.val), dead: r1(v.dead) })).sort((a, b) => b.dead - a.dead);\nconst topCats = category_table.slice(0, 7).map(c => c.name_ar);\nconst seaRows = topCats.map(k => ({ name_ar: k, name_en: k, d: intensity(catMonths.get(k) || new Array(12).fill(0)) }));\nconst nowList = topCats.filter(k => peakMonths(catMonths.get(k) || []).includes(curMon));\nconst soonList = topCats.filter(k => { const pk = peakMonths(catMonths.get(k) || []); return pk.includes((curMon + 1) % 12) || pk.includes((curMon + 2) % 12); });\nconst oosList = topCats.filter(k => { const pk = peakMonths(catMonths.get(k) || []); return pk.includes((curMon + 11) % 12) || pk.includes((curMon + 10) % 12); });\n\nconst bucketsSnap = [\n  { label_ar: '60 – 90 يوم', label_en: '60 – 90 days', dead: r1(buckets['60'].dead), dorm: r1(buckets['60'].dorm), sku: buckets['60'].sku, min: 0 },\n  { label_ar: '90 – 180 يوم', label_en: '90 – 180 days', dead: r1(buckets['90'].dead), dorm: r1(buckets['90'].dorm), sku: buckets['90'].sku, min: 1 },\n  { label_ar: '180+ يوم', label_en: '180+ days', dead: r1(buckets['180'].dead), dorm: r1(buckets['180'].dorm), sku: buckets['180'].sku, min: 2 }\n];\nconst seasonality = { months_ar: monAr.map(m => m[0]), months_en: ['J','F','M','A','M','J','J','A','S','O','N','D'], rows: seaRows,\n  now: { ar: nowList.join(' · ') || '—', en: nowList.join(' · ') || '—' },\n  soon: { ar: soonList.join(' · ') || '—', en: soonList.join(' · ') || '—' },\n  oos: { ar: oosList.join(' · ') || '—', en: oosList.join(' · ') || '—' } };\n\nconst snapshots = [\n  { key: 'total_stock_value', data: r1(totalStockValue) },\n  { key: 'meta', data: { products_total: stock.size, generated_at: new Date().toISOString() } },\n  { key: 'buckets', data: bucketsSnap },\n  { key: 'by_category', data: by_category },\n  { key: 'by_brand', data: by_brand },\n  { key: 'category_table', data: category_table },\n  { key: 'brand_table', data: brand_table },\n  { key: 'seasonality', data: seasonality }\n];\nreturn [{ json: { snapshots, products } }];\n"
+      },
+      "id": "n-build",
+      "name": "Build Dead Stock",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabaseUrl }}/rest/v1/dead_stock_snapshots?on_conflict=key",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $('Config').first().json.serviceKey }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config').first().json.serviceKey }}" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Build Dead Stock').first().json.snapshots) }}",
+        "options": {}
+      },
+      "id": "n-upsert-snap",
+      "name": "Upsert Snapshots → Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [600, 60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabaseUrl }}/rest/v1/dead_stock_products?on_conflict=product_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $('Config').first().json.serviceKey }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config').first().json.serviceKey }}" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Build Dead Stock').first().json.products) }}",
+        "options": {}
+      },
+      "id": "n-upsert-prod",
+      "name": "Upsert Products → Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [600, 240]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": { "main": [ [ { "node": "Config", "type": "main", "index": 0 } ] ] },
+    "Schedule Trigger": { "main": [ [ { "node": "Config", "type": "main", "index": 0 } ] ] },
+    "Config": { "main": [ [ { "node": "Odoo Auth", "type": "main", "index": 0 } ] ] },
+    "Odoo Auth": { "main": [ [ { "node": "Odoo Stock (read_group)", "type": "main", "index": 0 } ] ] },
+    "Odoo Stock (read_group)": { "main": [ [ { "node": "Odoo Products (read)", "type": "main", "index": 0 } ] ] },
+    "Odoo Products (read)": { "main": [ [ { "node": "Odoo Brands (read)", "type": "main", "index": 0 } ] ] },
+    "Odoo Brands (read)": { "main": [ [ { "node": "Odoo Sales Monthly (read_group)", "type": "main", "index": 0 } ] ] },
+    "Odoo Sales Monthly (read_group)": { "main": [ [ { "node": "Odoo Sales 90d (read_group)", "type": "main", "index": 0 } ] ] },
+    "Odoo Sales 90d (read_group)": { "main": [ [ { "node": "Build Dead Stock", "type": "main", "index": 0 } ] ] },
+    "Build Dead Stock": { "main": [ [ { "node": "Upsert Snapshots → Supabase", "type": "main", "index": 0 }, { "node": "Upsert Products → Supabase", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}
