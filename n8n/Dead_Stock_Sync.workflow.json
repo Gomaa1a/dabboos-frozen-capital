@@ -86,7 +86,7 @@
         "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'product.product', 'read', [ $('Odoo Stock').first().json.result.map(g => Array.isArray(g.product_id) ? g.product_id[0] : g.product_id), ['display_name','default_code','categ_id','product_tmpl_id','standard_price'] ] ] } }) }}",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, 'product.product', 'read', [ $('Odoo Stock (read_group)').first().json.result.map(g => Array.isArray(g.product_id) ? g.product_id[0] : g.product_id), ['display_name','default_code','categ_id','product_tmpl_id','standard_price'] ] ] } }) }}",
         "options": {}
       },
       "id": "n-products",
@@ -103,7 +103,7 @@
         "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, $('Config').first().json.brandModel, 'read', [ [...new Set($('Odoo Products').first().json.result.map(p => Array.isArray(p.product_tmpl_id) ? p.product_tmpl_id[0] : p.product_tmpl_id))], [ $('Config').first().json.brandField ] ] ] } }) }}",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc:'2.0', method:'call', params:{ service:'object', method:'execute_kw', args:[ $('Config').first().json.odooDb, $('Odoo Auth').first().json.result, $('Config').first().json.odooApiKey, $('Config').first().json.brandModel, 'read', [ [...new Set($('Odoo Products (read)').first().json.result.map(p => Array.isArray(p.product_tmpl_id) ? p.product_tmpl_id[0] : p.product_tmpl_id))], [ $('Config').first().json.brandField ] ] ] } }) }}",
         "options": {}
       },
       "id": "n-brands",
