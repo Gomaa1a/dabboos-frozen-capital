@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>دليل داشبورد المنتجات الراكدة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Cairo','Segoe UI','Tahoma',sans-serif; color: #1a2230; font-size: 12.5px; line-height: 1.8; margin: 0; }
+  h1,h2,h3 { font-weight: 700; color: #0f2540; margin: 0; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 19px; border-right: 5px solid #2563eb; padding-right: 10px; margin: 26px 0 12px; }
+  h3 { font-size: 15px; color: #1d4ed8; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  .cover { background: #0f2540; color: #fff; padding: 60px 40px; border-radius: 14px; margin-bottom: 28px; }
+  .cover h1 { color: #fff; }
+  .cover .sub { font-size: 15px; color: #9bc1ff; margin-top: 10px; }
+  .cover .meta { font-size: 12px; color: #c7d6ec; margin-top: 30px; }
+  .lead { background: #eef4ff; border-radius: 10px; padding: 14px 18px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 12px; }
+  th { background: #f1f5fb; color: #334; text-align: right; padding: 9px 11px; border: 1px solid #dce3ee; font-weight: 600; }
+  td { padding: 9px 11px; border: 1px solid #e6ebf3; vertical-align: top; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .c-dead { background: #fdeaea; color: #c0392b; }
+  .c-dorm { background: #fbf0da; color: #9a6700; }
+  .c-oos { background: #e6efff; color: #2563eb; }
+  .step { border: 1px solid #e0e7f1; border-radius: 10px; padding: 12px 16px; margin: 10px 0; page-break-inside: avoid; }
+  .step .n { display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; background: #2563eb; color: #fff; border-radius: 50%; font-weight: 700; margin-left: 8px; }
+  .step .ttl { font-weight: 700; color: #0f2540; }
+  ol, ul { margin: 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  .ok { color: #0f9d6e; font-weight: 600; }
+  .warn { background: #fff7e6; border-right: 4px solid #f0a020; border-radius: 6px; padding: 10px 14px; margin: 10px 0; }
+  .path { background: #f4f6fa; border: 1px solid #e0e6ef; border-radius: 6px; padding: 2px 8px; font-family: 'Consolas',monospace; direction: ltr; display: inline-block; font-size: 11.5px; }
+  .pagebreak { page-break-before: always; }
+  .foot { text-align: center; color: #8a94a4; font-size: 10.5px; margin-top: 30px; border-top: 1px solid #e6ebf3; padding-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>داشبورد المنتجات الراكدة</h1>
+  <div class="sub">Frozen Capital — دليل البيانات والتحقق من الأرقام</div>
+  <div class="meta">شركة الدبوس · إعداد للعرض على الإدارة · يونيو ٢٠٢٦</div>
+</div>
+
+<div class="lead">
+  <strong>الفكرة باختصار:</strong> الداشبورد بيجاوب على سؤال واحد — <em>فلوسنا متجمّدة فين؟</em>
+  أي منتج / فئة / براند فيه بضاعة مش بتتسحب، قد إيه فلوس واقفة فيها، ومن إمتى — ويفصل بين
+  <span class="chip c-dead">راكد فعلاً</span>
+  <span class="chip c-dorm">نائم موسمي</span>
+  <span class="chip c-oos">انتهى موسمه</span>
+</div>
+
+<h2>١. البيانات اللي بنجيبها من Odoo</h2>
+<p>الـ workflow على n8n بيتصل بـ Odoo ويسحب البيانات <strong>مجمّعة من السيرفر</strong> (read_group) — مش صف بصف — عشان المنتجات كتير:</p>
+<table>
+  <tr><th>المصدر (Odoo)</th><th>بنجيب منه إيه</th></tr>
+  <tr><td>stock.quant</td><td>الكمية الموجودة فعليًا + قيمة المخزون لكل منتج (المخازن الداخلية، كمية &gt; 0)</td></tr>
+  <tr><td>product.product</td><td>اسم المنتج، الكود، الفئة، التكلفة</td></tr>
+  <tr><td>product.template</td><td>البراند</td></tr>
+  <tr><td>sale.order.line (آخر ١٢ شهر)</td><td>مبيعات كل منتج شهر بشهر + تاريخ آخر بيعة (طلبات مؤكَّدة فقط)</td></tr>
+  <tr><td>sale.order.line (آخر ٩٠ يوم)</td><td>سرعة البيع الحديثة لكل منتج</td></tr>
+</table>
+<div class="warn">القواعد الثابتة: (١) الطلبات <strong>المؤكَّدة فقط</strong> (Sales Orders، الحالة sale/done) مش عروض الأسعار. (٢) القيمة <strong>بالتكلفة</strong> مش سعر البيع. (٣) القيم بالمليون (M) والمليار (B) دينار.</div>
+
+<h2>٢. المعالجة والحسابات</h2>
+<p>لكل منتج عنده مخزون، بنحسب:</p>
+<ul>
+  <li><strong>قيمة المخزون المجمّد</strong> = قيمة الـ quant، ولو مش متوفرة → الكمية × التكلفة.</li>
+  <li><strong>أيام الركود</strong> = عدد الأيام من آخر بيعة لحد النهاردة.</li>
+  <li><strong>الحالة:</strong> <span class="chip c-dead">راكد فعلاً</span> واقف من زمان ومفيش نمط موسمي → صفّيه ·
+    <span class="chip c-dorm">نائم</span> موسمه جاي قريب → استنّى ·
+    <span class="chip c-oos">انتهى موسمه</span> موسمه عدّى ولسه عندك مخزون → صفّيه دلوقتي.</li>
+  <li><strong>شرائح التقادم:</strong> ٦٠–٩٠ / ٩٠–١٨٠ / +١٨٠ يوم.</li>
+  <li><strong>التجميع</strong> حسب الفئة والبراند + <strong>تحليل الموسمية</strong> لكل فئة.</li>
+</ul>
+
+<h2>٣. التخزين في Supabase</h2>
+<table>
+  <tr><th>الجدول</th><th>بيحتوي</th></tr>
+  <tr><td>dead_stock_snapshots</td><td>الملخّصات: إجمالي قيمة المخزون · شرائح التقادم · حسب الفئة · حسب البراند · جداول تفصيلية · الموسمية</td></tr>
+  <tr><td>dead_stock_products</td><td>تفاصيل كل منتج راكد: الاسم · الفئة · البراند · الكمية · القيمة · أيام الركود · مبيعات ٩٠ يوم · أشهر الذروة · الحالة</td></tr>
+</table>
+
+<h2>٤. صفحات الداشبورد</h2>
+<table>
+  <tr><th>الصفحة</th><th>بتعرض إيه</th></tr>
+  <tr><td>نظرة عامة</td><td>٤ أرقام رئيسية + مؤشّر متحرّك (٦٠/٩٠/١٨٠ يوم) + شرائح التقادم (راكد مقابل نائم) + رأس المال حسب الفئة والبراند</td></tr>
+  <tr><td>فئات وبراندات</td><td>جدول لكل فئة وكل براند: العدد · قيمة المخزون · الراكد · % الراكد · الموسم</td></tr>
+  <tr><td>المنتجات</td><td>جدول كامل قابل للبحث والترتيب وبصفحات لكل منتج راكد</td></tr>
+  <tr><td>الموسمية</td><td>خريطة حرارية (فئات × ١٢ شهر) + تقويم الموسم (بيبيع دلوقتي / جاي قريب / انتهى موسمه)</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>٥. خطوات التحقق من الأرقام من Odoo</h2>
+<p>اختار منتج من جدول «المنتجات» في الداشبورد، سجّل قيمه، واتحقق منها واحدة واحدة:</p>
+
+<div class="step"><span class="n">١</span><span class="ttl">الكمية الموجودة (On Hand)</span>
+  <ol>
+    <li>Odoo → <span class="path">Inventory → Products → Products</span></li>
+    <li>ابحث عن المنتج وافتحه، وشوف خانة <strong>On Hand</strong></li>
+    <li><span class="ok">✓</span> لازم تساوي عمود «المخزون» في الداشبورد</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٢</span><span class="ttl">قيمة المخزون (Value)</span>
+  <ol>
+    <li>Odoo → <span class="path">Inventory → Reporting → Valuation</span></li>
+    <li>ابحث باسم المنتج وشوف عمود <strong>Value</strong></li>
+    <li><span class="ok">✓</span> قارنها بعمود «القيمة» (520M = 520,000,000)</li>
+    <li>لو صفر (مفيش Valuation) → الداشبورد بيحسبها = الكمية × التكلفة</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٣</span><span class="ttl">تاريخ آخر بيعة وأيام الركود</span>
+  <ol>
+    <li>Odoo → <span class="path">Sales → Reporting → Sales</span> (Sales Analysis)</li>
+    <li>فلتر: <strong>Product = المنتج</strong> (طلبات مؤكَّدة)</li>
+    <li><strong>Group By → Order Date</strong>، رتّب تنازلي → أحدث تاريخ = آخر بيعة</li>
+    <li>أيام الركود = النهاردة − تاريخ آخر بيعة</li>
+    <li><span class="ok">✓</span> لازم تطابق عمود «أيام ركود» (±يوم)</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٤</span><span class="ttl">مبيعات آخر ٩٠ يوم</span>
+  <ol>
+    <li>نفس شاشة Sales Analysis</li>
+    <li>فلتر: <strong>Product = المنتج</strong> + <strong>Order Date: Last 90 Days</strong></li>
+    <li><strong>Measure → Quantity</strong>، شوف الإجمالي</li>
+    <li><span class="ok">✓</span> لازم يساوي عمود «مبيعات ٩٠ي»</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٥</span><span class="ttl">الحالة (راكد / نائم / انتهى موسمه)</span>
+  <ul>
+    <li><span class="chip c-dead">راكد فعلاً</span> أيام الركود ≥ ٩٠ ومفيش نمط موسمي</li>
+    <li><span class="chip c-dorm">نائم</span> راكد دلوقتي بس الفئة بتبيع في الشهور الجاية (راجع خطوة ٨)</li>
+    <li><span class="chip c-oos">انتهى موسمه</span> الفئة كانت بتبيع في الشهور اللي فاتت وخلصت</li>
+  </ul>
+</div>
+
+<h3>التحقق من الإجماليات</h3>
+
+<div class="step"><span class="n">٦</span><span class="ttl">إجمالي قيمة المخزون</span>
+  <ol>
+    <li>Odoo → <span class="path">Inventory → Reporting → Valuation</span></li>
+    <li>شيل الفلاتر → شوف إجمالي <strong>Value</strong></li>
+    <li><span class="ok">✓</span> ده المقام المستخدم في «% من قيمة المخزون»</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٧</span><span class="ttl">رأس المال المجمّد حسب الفئة / البراند</span>
+  <ol>
+    <li>Odoo → <span class="path">Inventory → Reporting → Valuation</span></li>
+    <li><strong>Group By → Product Category</strong></li>
+    <li>خُد فئة، واجمع قيم منتجاتها اللي مالهاش بيع حديث (خطوة ٣)</li>
+    <li><span class="ok">✓</span> لازم تقرب من «الراكد» للفئة في الداشبورد (تحقق بالعيّنة)</li>
+  </ol>
+</div>
+
+<div class="step"><span class="n">٨</span><span class="ttl">الموسمية (Heatmap)</span>
+  <ol>
+    <li>Odoo → <span class="path">Sales → Reporting → Sales</span></li>
+    <li>فلتر: <strong>Product Category = الفئة</strong> + آخر سنة</li>
+    <li><strong>Group By → Order Date: Month</strong> و <strong>Measure → Quantity</strong></li>
+    <li><span class="ok">✓</span> نفس شكل صف الفئة في الخريطة الحرارية (الأغمق = الأعلى)</li>
+  </ol>
+</div>
+
+<div class="warn"><strong>طريقة سريعة للتأكد الشامل:</strong> اختار ٣ منتجات — راكد، نائم، وانتهى موسمه — وطبّق عليهم خطوات ١→٥. لو الثلاثة طابقوا، المنطق سليم وتقدر تثق في الباقي.</div>
+
+<div class="foot">داشبورد المنتجات الراكدة — Frozen Capital · شركة الدبوس · وثيقة داخلية</div>
+
+</body>
+</html>
